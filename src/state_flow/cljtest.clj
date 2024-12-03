@@ -38,6 +38,17 @@
      :file (-> description-stack last core/description->file)
      :line (-> description-stack last :line)}))
 
+(defmacro flow [name & forms]
+  (let [[parameters & flows] (if (map? (first forms))
+                               forms
+                               (cons {} forms))
+        flow                 `(core/flow ~(str name) ~@flows)]
+    `(let [[ret# state#] (core/run* ~parameters ~flow)
+           assertions#   (get-in (meta state#) [:test-report :assertions])]
+       (doseq [assertion-data# assertions#]
+         (t/report (#'clojure-test-report assertion-data#)))
+       [ret# state#])))
+
 (defmacro defflow
   {:doc      "Creates a flow and binds it a Var named by name"
    :arglists '([name & flows]
